@@ -1,0 +1,31 @@
+{
+  "manifest_version": 2,
+  "name": "WhatsApp Web API",
+  "description": "WhatsApp Web JS APIs",
+  "version": "1.0.39",
+  "icons": {
+    "16": "favicon.png",
+    "48": "favicon.png",
+    "128": "favicon.png",
+    "256": "favicon.png"
+  },
+  "browser_action": {
+    "default_title": "WhatsApp Web API",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ],
+    "persistent": true
+  },
+  "web_accessible_resources": [
+    "whatsapp-inject-api.js"
+  ],
+  "permissions": [
+    "https://web.whatsapp.com/*",
+    "debugger",
+    "webNavigation",
+    "tabs"
+  ]
+}
