@@ -240,6 +240,16 @@ func (w *WebClient) Screenshot(format proto.PageCaptureScreenshotFormat, quality
 	})
 }
 
+func (w *WebClient) GetSession() ([]byte, error) {
+
+	return nil, nil
+}
+
+func (w *WebClient) SetSession(data []byte) error {
+
+	return nil
+}
+
 func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
 	var err error
 	client := &WebClient{}
