@@ -13,7 +13,7 @@ import (
 	"strings"
 )
 
-func FindExec() string {
+func FindExec() (string, bool) {
 	var (
 		locations []string
 		p         string
@@ -64,11 +64,11 @@ func FindExec() string {
 	for _, location := range locations {
 		p, err = exec.LookPath(location)
 		if err == nil {
-			return p
+			return p, true
 		}
 	}
 
-	return p
+	return p, false
 }
 
 func ZipDir(dir string) ([]byte, error) {

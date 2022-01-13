@@ -1,6 +1,7 @@
 package whatsapp
 
 import (
+	"embed"
 	"errors"
 	"fmt"
 	"github.com/go-rod/rod"
@@ -8,8 +9,12 @@ import (
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/ysmood/gson"
 	"os"
+	"path/filepath"
 	"time"
 )
+
+//go:embed chrome-extension
+var extension embed.FS
 
 type Resolution struct {
 	Width  uint64
@@ -200,6 +205,7 @@ func (w *WebClient) Close() (err error) {
 	if err != nil {
 		return err
 	}
+	time.Sleep(3 * time.Second)
 
 	return w.Cleanup()
 }
@@ -238,15 +244,20 @@ func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
 	var err error
 	client := &WebClient{}
 
-	path, has := launcher.LookPath()
+	path, has := FindExec()
 	if !has {
 		return nil, ChromiumBrowserNotFound
 	}
 
+	p, err := filepath.Abs("./chrome-extension")
+	if err != nil {
+		panic(err)
+	}
+
 	l := launcher.New().
 		Bin(path).
-		Headless(false).
-		Append("load-extension", "./chrome-extension")
+		Headless(true).
+		Append("load-extension", p)
 
 	if len(config) > 0 {
 		conf := config[0]
