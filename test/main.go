@@ -1,6 +1,12 @@
 package main
 
+import (
+	"fmt"
+	"github.com/tee-ck/go-whatsapp-web"
+)
+
 func main() {
+	fmt.Println(whatsapp.FindExec())
 	//client, err := whatsapp.NewWebClient(whatsapp.WebClientConfig{
 	//	SessionID: "4a18befee56fd6cb775fcf2ae0dbdaa4093dce24eb9cfca2",
 	//})

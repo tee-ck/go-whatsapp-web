@@ -7,9 +7,69 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
+
+func FindExec() string {
+	var (
+		locations []string
+		p         string
+		err       error
+	)
+
+	switch runtime.GOOS {
+	case "darwin":
+		locations = []string{
+			// Mac
+			"/Applications/Chromium.app/Contents/MacOS/Chromium",
+			"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+			"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+		}
+	case "windows":
+		locations = []string{
+			// Windows
+			"chrome",
+			"chrome.exe", // in case PATHEXT is misconfiguration
+			`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+			`C:\Program Files\Google\Chrome\Application\chrome.exe`,
+			filepath.Join(os.Getenv("USERPROFILE"), `AppData\Local\Google\Chrome\Application\chrome.exe`),
+			filepath.Join(os.Getenv("USERPROFILE"), `AppData\Local\Chromium\Application\chrome.exe`),
+			"msedge",
+			"msedge.exe",
+			`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
+		}
+	default:
+		locations = []string{
+			// Unix-like
+			"headless_shell",
+			"headless-shell",
+			"chromium",
+			"chromium-browser",
+			"google-chrome",
+			"google-chrome-stable",
+			"google-chrome-beta",
+			"google-chrome-unstable",
+			"/usr/bin/google-chrome",
+			"/usr/local/bin/chrome",
+			"/snap/bin/chromium",
+			"chrome",
+			"microsoft-edge",
+			"/usr/bin/microsoft-edge",
+		}
+	}
+
+	for _, location := range locations {
+		p, err = exec.LookPath(location)
+		if err == nil {
+			return p
+		}
+	}
+
+	return p
+}
 
 func ZipDir(dir string) ([]byte, error) {
 	var (
