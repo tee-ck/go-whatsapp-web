@@ -3,15 +3,21 @@ package whatsapp
 import (
 	"archive/zip"
 	"bytes"
+	"embed"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
+
+//go:embed chrome-extension
+var extension embed.FS
 
 func FindExec() (string, bool) {
 	var (
@@ -24,7 +30,7 @@ func FindExec() (string, bool) {
 	case "darwin":
 		locations = []string{
 			// Mac
-			"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
+			//"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
 			"/Applications/Chromium.app/Contents/MacOS/Chromium",
 			"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
 			"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
@@ -72,14 +78,39 @@ func FindExec() (string, bool) {
 	return p, false
 }
 
-func ZipDir(dir string) ([]byte, error) {
+func InstallChromeExtension() error {
+	return fs.WalkDir(extension, ".", func(path string, d fs.DirEntry, err error) error {
+		fmt.Println(path)
+		if d.IsDir() {
+			err := os.MkdirAll(path, os.ModePerm)
+			if err != nil {
+				if !errors.Is(err, os.ErrExist) {
+					return err
+				}
+			}
+		} else {
+			data, err := extension.ReadFile(path)
+			if err != nil {
+				panic(err)
+			}
+
+			return ioutil.WriteFile(path, data, 0755)
+		}
+
+		return nil
+	})
+}
+
+func ZipDir(dir string) (data []byte, err error) {
 	var (
 		buffer bytes.Buffer
-		err    error
 		zipper *zip.Writer
 	)
 
 	zipper = zip.NewWriter(&buffer)
+	defer func(zipper *zip.Writer) {
+		err = zipper.Close()
+	}(zipper)
 
 	err = filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
 		if strings.Contains(path, ".DS_Store") || info.Name() == ".DS_Store" {
@@ -100,6 +131,9 @@ func ZipDir(dir string) ([]byte, error) {
 		if !info.IsDir() {
 			file, err := os.Open(path)
 			if err != nil {
+				if errors.Is(err, os.ErrExist) {
+					return nil
+				}
 				return err
 			}
 
@@ -111,11 +145,7 @@ func ZipDir(dir string) ([]byte, error) {
 
 		return nil
 	})
-	if err != nil {
-		return nil, err
-	}
 
-	err = zipper.Close()
 	if err != nil {
 		return nil, err
 	}

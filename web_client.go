@@ -1,7 +1,6 @@
 package whatsapp
 
 import (
-	"embed"
 	"errors"
 	"fmt"
 	"github.com/go-rod/rod"
@@ -12,9 +11,6 @@ import (
 	"path/filepath"
 	"time"
 )
-
-//go:embed chrome-extension
-var extension embed.FS
 
 type Resolution struct {
 	Width  uint64
