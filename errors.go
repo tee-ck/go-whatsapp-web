@@ -6,6 +6,7 @@ import (
 
 var (
 	ErrChromiumBrowserNotFound   = errors.New("[whatsapp web client]: chromium based browser not found")
+	ErrWebWhatsAppLoadFailed     = errors.New("[whatsapp web client]: unable to load the whatsapp web")
 	ErrExtensionLoadFailed       = errors.New("[whatsapp web client]: extension script load failed")
 	ErrWebClientLaunchTimeout    = errors.New("[whatsapp web client]: launch timeout")
 	ErrElementWaitVisibleTimeout = errors.New("[whatsapp web client]: browser element wait visible timeout")

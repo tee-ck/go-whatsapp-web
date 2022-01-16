@@ -24,13 +24,18 @@ func TestStartClient(t *testing.T) {
 
 func TestMultipleClient(t *testing.T) {
 	var wg sync.WaitGroup
-	count := 4
+	count := 8
 
 	for i := 0; i < count; i++ {
 		wg.Add(1)
 
 		go func() {
-			client, err := NewWebClient(WebClientConfig{})
+			client, err := NewWebClient(WebClientConfig{
+				Resolution: &Resolution{
+					Width:  1280,
+					Height: 720,
+				},
+			})
 			if err != nil {
 				log.Fatalln(err)
 			}

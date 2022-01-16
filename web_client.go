@@ -180,6 +180,25 @@ func (w *WebClient) WaitVisible(selector string, timeout time.Duration) (err err
 	return err
 }
 
+func (w *WebClient) WaitScriptInjection(timeout time.Duration) error {
+	current := time.Now().UnixMilli()
+
+	for time.Now().UnixMilli()-current < timeout.Milliseconds() {
+		resp, err := w.Script("!!window.whatsapp")
+		if err != nil {
+			return err
+		}
+
+		if resp.Value.Bool() {
+			return nil
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+	return ErrExtensionLoadFailed
+}
+
 func (w *WebClient) Close() (err error) {
 	err = w.browser.Close()
 	if err != nil {
@@ -258,6 +277,7 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		Append("window-size", fmt.Sprintf("%d,%d", config.Resolution.Width, config.Resolution.Height)).
 		Headless(config.Headless)
 
+	// if session ID do assigned, create a temp user profile dir
 	if config.SessionID != "" {
 		launch.UserDataDir(fmt.Sprintf("./chrome-data/user-%s", config.SessionID))
 		client.Session.ID = config.SessionID
@@ -285,6 +305,22 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		NewWindow:               false,
 		Background:              false,
 	})
+
+	// ensure the script is loaded successfully
+	err = client.WaitScriptInjection(10 * time.Second)
+	if err != nil {
+		return nil, err
+	}
+
+	// wait until the whatsapp web page prepared for qr-scan or messaging
+	resp, err := client.Script("whatsapp.ui.until_loaded()")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Value.Map()["status"].Int() != 200 {
+		return nil, ErrWebWhatsAppLoadFailed
+	}
 
 	return client, nil
 }
