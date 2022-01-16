@@ -6,9 +6,10 @@ import (
 )
 
 type Message struct {
-	Kind string          `json:"kind,omitempty"`
-	Body string          `json:"body,omitempty"`
-	Opts *MessageOptions `json:"opts,omitempty"`
+	Recipient string          `json:"-"`
+	Kind      string          `json:"kind,omitempty"`
+	Body      string          `json:"body,omitempty"`
+	Opts      *MessageOptions `json:"opts,omitempty"`
 }
 
 func (m *Message) AppendAttachment(attachment ...MessageAttachment) {

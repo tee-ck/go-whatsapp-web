@@ -9,8 +9,11 @@ import (
 	"github.com/ysmood/gson"
 	"os"
 	"path/filepath"
+	"regexp"
 	"time"
 )
+
+var recipientRegex *regexp.Regexp
 
 type Resolution struct {
 	Width  uint64
@@ -19,8 +22,18 @@ type Resolution struct {
 
 type WebClientConfig struct {
 	SessionID  string
+	UserAgent  string
 	Resolution *Resolution
 	Headless   bool
+}
+
+var DefaultWebClientConfig = WebClientConfig{
+	UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36",
+	Resolution: &Resolution{
+		Width:  1280,
+		Height: 720,
+	},
+	Headless: true,
 }
 
 type WaResp struct {
@@ -47,11 +60,11 @@ type WebClient struct {
 
 func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
 	if w.IsLogin {
-		return nil, FetchQrAfterLogin
+		return nil, ErrFetchQrAfterLogin
 	}
 
 	var qr string
-	ch := make(chan WaResp, 12)
+	ch := make(chan WaResp, 10)
 
 	go func() {
 		now := time.Now()
@@ -60,7 +73,7 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
 				ch <- WaResp{
 					Status:  400,
 					Message: "fetch qr timeout",
-					Error:   nil,
+					Error:   ErrFetchQrTimeout,
 				}
 				break
 			}
@@ -85,7 +98,7 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
 				qr = obj.Value.Str()
 			}
 
-			time.Sleep(1 * time.Second)
+			time.Sleep(100 * time.Millisecond)
 		}
 		close(ch)
 	}()
@@ -95,7 +108,14 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
 
 func (w *WebClient) SendMessage(message *Message) (resp *proto.RuntimeRemoteObject, err error) {
 	if !w.IsLogin {
-		return nil, LoginRequired
+		return nil, ErrLoginRequired
+	}
+
+	if message.Recipient == "" {
+		return nil, ErrMessageRecipientNotFound
+
+	} else if !recipientRegex.MatchString(message.Recipient) {
+		return nil, ErrInvalidMessageRecipient
 	}
 
 	data, err := message.JSON()
@@ -103,7 +123,9 @@ func (w *WebClient) SendMessage(message *Message) (resp *proto.RuntimeRemoteObje
 		return nil, err
 	}
 
-	resp, err = w.AsyncScript(fmt.Sprintf("whatsapp.send_message(%s)", string(data)))
+	fmt.Println(string(data))
+
+	resp, err = w.AsyncScript(fmt.Sprintf("whatsapp.send_message(%s, %s)", message.Recipient, string(data)))
 	if err != nil {
 		return nil, err
 	}
@@ -129,8 +151,8 @@ func (w *WebClient) AsyncScript(script string) (*proto.RuntimeRemoteObject, erro
 func (w *WebClient) WaitLogin(timeout time.Duration) error {
 	err := w.WaitVisible("#side", timeout)
 	if err != nil {
-		if errors.Is(err, ElementWaitVisibleTimeout) {
-			return LoginTimeout
+		if errors.Is(err, ErrElementWaitVisibleTimeout) {
+			return ErrWaitLoginTimeout
 		}
 		return err
 	}
@@ -169,7 +191,7 @@ func (w *WebClient) WaitVisible(selector string, timeout time.Duration) (err err
 	case err = <-ch:
 		break
 	case <-time.After(timeout):
-		err = ElementWaitVisibleTimeout
+		err = ErrElementWaitVisibleTimeout
 	}
 
 	close(ch)
@@ -236,81 +258,93 @@ func (w *WebClient) Screenshot(format proto.PageCaptureScreenshotFormat, quality
 	})
 }
 
-func (w *WebClient) GetSession() ([]byte, error) {
+func (w *WebClient) DumpSession() ([]byte, error) {
+	// todo wait for implementation
 
 	return nil, nil
 }
 
-func (w *WebClient) SetSession(data []byte) error {
+func (w *WebClient) LoadSession(data []byte) error {
+	// todo wait for implementation
 
 	return nil
 }
 
 func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
-	var err error
+	var (
+		conf = DefaultWebClientConfig
+		err  error
+	)
 	client := &WebClient{}
+
+	if len(config) > 0 {
+		conf = config[0]
+	}
+
+	if conf.UserAgent == "" {
+		conf.UserAgent = DefaultWebClientConfig.UserAgent
+	}
+	if conf.Resolution == nil {
+		conf.Resolution = DefaultWebClientConfig.Resolution
+	}
 
 	path, has := FindExec()
 	if !has {
-		return nil, ChromiumBrowserNotFound
+		return nil, ErrChromiumBrowserNotFound
 	}
 
-	p, err := filepath.Abs("./chrome-extension")
-	if err != nil {
-		panic(err)
-	}
-
-	l := launcher.New().
-		Bin(path).
-		Headless(true).
-		Append("load-extension", p)
-
-	if len(config) > 0 {
-		conf := config[0]
-
-		if conf.SessionID != "" {
-			l.UserDataDir(fmt.Sprintf("./chrome-data/user-%s", conf.SessionID))
-			client.Session.ID = conf.SessionID
-		}
-
-		if conf.Resolution != nil {
-			l.Append("window-size", fmt.Sprintf("%d,%d", conf.Resolution.Width, conf.Resolution.Height))
-		}
-
-		l.Headless(conf.Headless)
-	}
-
-	uri, err := l.Launch()
+	p, err := filepath.Abs("./chrome-extensions")
 	if err != nil {
 		return nil, err
 	}
 
-	client.Pid = l.PID()
+	launch := launcher.New().
+		Bin(path).
+		Headless(true).
+		Append("user-agent", conf.UserAgent).
+		Append("load-extension", p).
+		Append("window-size", fmt.Sprintf("%d,%d", conf.Resolution.Width, conf.Resolution.Height)).
+		Headless(conf.Headless)
+
+	if conf.SessionID != "" {
+		launch.UserDataDir(fmt.Sprintf("./chrome-data/user-%s", conf.SessionID))
+		client.Session.ID = conf.SessionID
+	}
+
+	uri, err := launch.Launch()
+	if err != nil {
+		return nil, err
+	}
+
+	client.Pid = launch.PID()
 	client.browser = rod.New().ControlURL(uri)
 	err = client.browser.Connect()
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	client.page, err = client.browser.Page(proto.TargetCreateTarget{
 		URL:                     "https://web.whatsapp.com",
-		Width:                   960,
-		Height:                  540,
+		Width:                   int(conf.Resolution.Width),
+		Height:                  int(conf.Resolution.Height),
 		BrowserContextID:        client.browser.BrowserContextID,
 		EnableBeginFrameControl: false,
 		NewWindow:               false,
 		Background:              false,
 	})
 
+	qr := client.WaitVisibleChannel("div[data-ref]")
+	panel := client.WaitVisibleChannel("#side")
+
 	select {
-	case err = <-client.WaitVisibleChannel("div[data-ref]"):
+	case err = <-qr:
 		// login qr code render successfully
 
-	case err = <-client.WaitVisibleChannel("#side"):
+	case err = <-panel:
 		client.IsLogin = true
 
-	case <-time.After(60 * time.Second):
-		return nil, WebClientLaunchTimeout
+	case <-time.After(150 * time.Second):
+		return nil, ErrWebClientLaunchTimeout
 	}
 
 	if err != nil {
@@ -320,7 +354,7 @@ func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
 	// make sure the Chrome extension script is load successfully
 	_, err = client.Script("window.whatsapp")
 	if err != nil {
-		return nil, ExtensionLoadFailed
+		return nil, ErrExtensionLoadFailed
 	}
 
 	if client.IsLogin {
@@ -333,4 +367,13 @@ func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
 	}
 
 	return client, nil
+}
+
+func init() {
+	re, err := regexp.Compile(`[0-9]+`)
+	if err != nil {
+		panic(err)
+	}
+
+	recipientRegex = re
 }

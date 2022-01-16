@@ -1,50 +1,63 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/tee-ck/go-whatsapp-web"
-	"io/ioutil"
-	"log"
-	"os"
 	"time"
 )
 
 func main() {
-	log.SetFlags(log.Llongfile)
+	message := &whatsapp.Message{
+		Recipient: "60196132898",
+		Kind:      "text",
+		Body:      "Hello, World",
+	}
 
 	client, err := whatsapp.NewWebClient(whatsapp.WebClientConfig{
 		SessionID: "622f6c4949597036784f7631615846786364365063773d3d",
-		Headless:  false,
+		Resolution: &whatsapp.Resolution{
+			Width:  1280,
+			Height: 720,
+		},
+		Headless: false,
 	})
 
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("login successfully")
+	fmt.Println("launch successfully")
 
-	time.Sleep(5 * time.Second)
+	ch, err := client.GetQrChannel(20 * time.Second)
+	if err != nil {
+		if !errors.Is(err, whatsapp.ErrFetchQrAfterLogin) {
+			panic(err)
+		}
+	} else {
+		for resp := range ch {
+			fmt.Println(resp)
+
+			if resp.Error != nil {
+				break
+			}
+		}
+	}
+
+	err = client.WaitLogin(60 * time.Second)
+	if err != nil {
+		panic(err)
+	}
+
+	resp, err := client.SendMessage(message)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(resp.Value.Map())
+
+	time.Sleep(60 * time.Second)
 	err = client.Close()
 	if err != nil {
-		log.Fatal(err)
-	}
-
-	data, err := whatsapp.ZipDir("./chrome-data/user-622f6c4949597036784f7631615846786364365063773d3d")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = ioutil.WriteFile("./compress-data.zip", data, os.ModePerm)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	data, err = ioutil.ReadFile("compress-data.zip")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = whatsapp.UnzipDir(data, "./chrome-data/user-622f6c4949597036784f7631615846786364365063773d3d")
-	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
 }

@@ -6,17 +6,15 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 )
 
-//go:embed chrome-extension
+//go:embed chrome-extensions
 var extension embed.FS
 
 func FindExec() (string, bool) {
@@ -38,8 +36,11 @@ func FindExec() (string, bool) {
 	case "windows":
 		locations = []string{
 			// Windows
+			//"brave",
+			//"brave.exe",
 			"chrome",
 			"chrome.exe", // in case PATHEXT is misconfiguration
+			//`C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe`,
 			`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
 			`C:\Program Files\Google\Chrome\Application\chrome.exe`,
 			filepath.Join(os.Getenv("USERPROFILE"), `AppData\Local\Google\Chrome\Application\chrome.exe`),
@@ -101,51 +102,19 @@ func InstallChromeExtension() error {
 	})
 }
 
-func ZipDir(dir string) (data []byte, err error) {
+func ZipDir(dir string) (zipped []byte, err error) {
 	var (
-		buffer bytes.Buffer
-		zipper *zip.Writer
+		buffer = new(bytes.Buffer)
 	)
 
-	zipper = zip.NewWriter(&buffer)
-	defer func(zipper *zip.Writer) {
-		err = zipper.Close()
-	}(zipper)
+	writer := zip.NewWriter(buffer)
 
-	err = filepath.Walk(dir, func(path string, info fs.FileInfo, err error) error {
-		if strings.Contains(path, ".DS_Store") || info.Name() == ".DS_Store" {
-			return nil
-		}
+	err = ZipFiles(dir, writer)
+	if err != nil {
+		return nil, err
+	}
 
-		header, err := zip.FileInfoHeader(info)
-		if err != nil {
-			return err
-		}
-		header.Name = path
-
-		block, err := zipper.CreateHeader(header)
-		if err != nil {
-			return err
-		}
-
-		if !info.IsDir() {
-			file, err := os.Open(path)
-			if err != nil {
-				if errors.Is(err, os.ErrExist) {
-					return nil
-				}
-				return err
-			}
-
-			_, err = io.Copy(block, file)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	})
-
+	err = writer.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +122,40 @@ func ZipDir(dir string) (data []byte, err error) {
 	return buffer.Bytes(), nil
 }
 
-func UnzipDir(zipfile []byte, dst string) error {
+func ZipFiles(dir string, writer *zip.Writer) error {
+	files, err := ioutil.ReadDir(dir)
+	if err != nil {
+		return err
+	}
+
+	for _, file := range files {
+		if file.IsDir() {
+			err = ZipFiles(filepath.Join(dir, file.Name()), writer)
+			if err != nil {
+				return err
+			}
+		} else {
+			data, err := ioutil.ReadFile(filepath.Join(dir, file.Name()))
+			if err != nil {
+				return err
+			}
+
+			w, err := writer.Create(filepath.Join(dir, file.Name()))
+			if err != nil {
+				return err
+			}
+
+			_, err = w.Write(data)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func UnzipDir(zipfile []byte) error {
 	var (
 		err    error
 		reader *zip.Reader
@@ -168,8 +170,8 @@ func UnzipDir(zipfile []byte, dst string) error {
 		if file.Mode().IsDir() {
 
 		}
-		//err = os.MkdirAll(file.Name, os.ModeDir)
 
+		err = os.MkdirAll(file.Name, os.ModeDir)
 		if err != nil {
 			fmt.Println(err.Error())
 			panic(err)
