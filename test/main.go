@@ -8,12 +8,6 @@ import (
 )
 
 func main() {
-	message := &whatsapp.Message{
-		Recipient: "60196132898",
-		Kind:      "text",
-		Body:      "Hello, World",
-	}
-
 	client, err := whatsapp.NewWebClient(whatsapp.WebClientConfig{
 		SessionID: "622f6c4949597036784f7631615846786364365063773d3d",
 		Resolution: &whatsapp.Resolution{
@@ -47,13 +41,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	resp, err := client.SendMessage(message)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(resp.Value.Map())
 
 	time.Sleep(60 * time.Second)
 	err = client.Close()

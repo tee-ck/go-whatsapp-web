@@ -123,9 +123,7 @@ func (w *WebClient) SendMessage(message *Message) (resp *proto.RuntimeRemoteObje
 		return nil, err
 	}
 
-	fmt.Println(string(data))
-
-	resp, err = w.AsyncScript(fmt.Sprintf("whatsapp.send_message(%s, %s)", message.Recipient, string(data)))
+	resp, err = w.Script(fmt.Sprintf("whatsapp.send_message(%s, %s)", message.Recipient, string(data)))
 	if err != nil {
 		return nil, err
 	}
