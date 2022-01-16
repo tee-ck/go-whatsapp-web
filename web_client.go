@@ -20,22 +20,6 @@ type Resolution struct {
 	Height uint64
 }
 
-type WebClientConfig struct {
-	SessionID  string
-	UserAgent  string
-	Resolution *Resolution
-	Headless   bool
-}
-
-var DefaultWebClientConfig = WebClientConfig{
-	UserAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/97.0.4692.71 Safari/537.36",
-	Resolution: &Resolution{
-		Width:  1280,
-		Height: 720,
-	},
-	Headless: true,
-}
-
 type WaResp struct {
 	Status  int
 	Message string
@@ -196,26 +180,6 @@ func (w *WebClient) WaitVisible(selector string, timeout time.Duration) (err err
 	return err
 }
 
-func (w *WebClient) WaitVisibleChannel(selector string) chan error {
-	ch := make(chan error)
-
-	go func() {
-		element, err := w.page.Element(selector)
-		if err != nil {
-			ch <- err
-		}
-
-		err = element.WaitVisible()
-		if err != nil {
-			ch <- err
-		}
-
-		ch <- nil
-	}()
-
-	return ch
-}
-
 func (w *WebClient) Close() (err error) {
 	err = w.browser.Close()
 	if err != nil {
@@ -268,23 +232,13 @@ func (w *WebClient) LoadSession(data []byte) error {
 	return nil
 }
 
-func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
+func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	var (
-		conf = DefaultWebClientConfig
-		err  error
+		err error
 	)
+
+	config := HandleConfigs(configs...)
 	client := &WebClient{}
-
-	if len(config) > 0 {
-		conf = config[0]
-	}
-
-	if conf.UserAgent == "" {
-		conf.UserAgent = DefaultWebClientConfig.UserAgent
-	}
-	if conf.Resolution == nil {
-		conf.Resolution = DefaultWebClientConfig.Resolution
-	}
 
 	path, has := FindExec()
 	if !has {
@@ -299,14 +253,14 @@ func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
 	launch := launcher.New().
 		Bin(path).
 		Headless(true).
-		Append("user-agent", conf.UserAgent).
+		Append("user-agent", config.UserAgent).
 		Append("load-extension", p).
-		Append("window-size", fmt.Sprintf("%d,%d", conf.Resolution.Width, conf.Resolution.Height)).
-		Headless(conf.Headless)
+		Append("window-size", fmt.Sprintf("%d,%d", config.Resolution.Width, config.Resolution.Height)).
+		Headless(config.Headless)
 
-	if conf.SessionID != "" {
-		launch.UserDataDir(fmt.Sprintf("./chrome-data/user-%s", conf.SessionID))
-		client.Session.ID = conf.SessionID
+	if config.SessionID != "" {
+		launch.UserDataDir(fmt.Sprintf("./chrome-data/user-%s", config.SessionID))
+		client.Session.ID = config.SessionID
 	}
 
 	uri, err := launch.Launch()
@@ -321,48 +275,16 @@ func NewWebClient(config ...WebClientConfig) (*WebClient, error) {
 		return nil, err
 	}
 
+	// opening web.whatsapp.com
 	client.page, err = client.browser.Page(proto.TargetCreateTarget{
 		URL:                     "https://web.whatsapp.com",
-		Width:                   int(conf.Resolution.Width),
-		Height:                  int(conf.Resolution.Height),
+		Width:                   int(config.Resolution.Width),
+		Height:                  int(config.Resolution.Height),
 		BrowserContextID:        client.browser.BrowserContextID,
 		EnableBeginFrameControl: false,
 		NewWindow:               false,
 		Background:              false,
 	})
-
-	qr := client.WaitVisibleChannel("div[data-ref]")
-	panel := client.WaitVisibleChannel("#side")
-
-	select {
-	case err = <-qr:
-		// login qr code render successfully
-
-	case err = <-panel:
-		client.IsLogin = true
-
-	case <-time.After(150 * time.Second):
-		return nil, ErrWebClientLaunchTimeout
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	// make sure the Chrome extension script is load successfully
-	_, err = client.Script("window.whatsapp")
-	if err != nil {
-		return nil, ErrExtensionLoadFailed
-	}
-
-	if client.IsLogin {
-		obj, err := client.Script("whatsapp.remote")
-		if err != nil {
-			return nil, err
-		}
-
-		client.Session.Remote = obj.Value.Str()
-	}
 
 	return client, nil
 }
