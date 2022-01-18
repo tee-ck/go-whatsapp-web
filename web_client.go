@@ -93,7 +93,7 @@ func (w *WebClient) SendMessage(message *Message) (resp *JsResp, err error) {
 		return nil, err
 	}
 
-	obj, err := w.Script(fmt.Sprintf("whatsapp.send_message(%s, %s)", message.Recipient, string(data)))
+	obj, err := w.Script(fmt.Sprintf("window.whatsapp.send_message(%s, %s)", message.Recipient, string(data)))
 	if err != nil {
 		return nil, err
 	}
