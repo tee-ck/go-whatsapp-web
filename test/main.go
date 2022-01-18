@@ -6,6 +6,7 @@ import (
 	"github.com/tee-ck/go-whatsapp-web"
 	"github.com/ysmood/gson"
 	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -19,6 +20,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	os.Exit(1)
 
 	// if the whatsapp client is started successfully, perform following test
 	var (
@@ -66,8 +69,8 @@ func StartClient() (client *whatsapp.WebClient, err error) {
 	client, err = whatsapp.NewWebClient(whatsapp.WebClientConfig{
 		SessionID: "622f6c4949597036784f7631615846786364365063773d3d",
 		Resolution: &whatsapp.Resolution{
-			Width:  1280,
-			Height: 720,
+			Width:  1600,
+			Height: 900,
 		},
 		Headless: false,
 	})

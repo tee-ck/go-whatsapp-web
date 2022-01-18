@@ -9,11 +9,8 @@ import (
 	"github.com/ysmood/gson"
 	"os"
 	"path/filepath"
-	"regexp"
 	"time"
 )
-
-var recipientRegex *regexp.Regexp
 
 type Resolution struct {
 	Width  uint64
@@ -47,39 +44,28 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
 		return nil, ErrFetchQrAfterLogin
 	}
 
-	var qr string
+	var (
+		qrcode string
+	)
 	ch := make(chan WaResp, 10)
 
 	go func() {
 		now := time.Now()
 		for {
 			if time.Now().UnixMilli()-now.UnixMilli() >= timeout.Milliseconds() {
-				ch <- WaResp{
-					Status:  400,
-					Message: "fetch qr timeout",
-					Error:   ErrFetchQrTimeout,
-				}
+				ch <- WaResp{400, "fetch qrcode timeout", gson.JSON{}, ErrFetchQrTimeout}
 				break
 			}
 
 			obj, err := w.Script("whatsapp.ui.get_qr()")
 			if err != nil {
-				ch <- WaResp{
-					Status:  500,
-					Message: "script error",
-					Value:   obj.Value,
-					Error:   err,
-				}
+				ch <- WaResp{500, "script error: whatsapp.ui.get_qr()", obj.Value, err}
 				break
 			}
 
-			if qr != obj.Value.Str() {
-				ch <- WaResp{
-					Status: 200,
-					Value:  obj.Value,
-					Error:  nil,
-				}
-				qr = obj.Value.Str()
+			if qrcode != obj.Value.Str() {
+				ch <- WaResp{200, "", obj.Value, nil}
+				qrcode = obj.Value.Str()
 			}
 
 			time.Sleep(100 * time.Millisecond)
@@ -98,7 +84,7 @@ func (w *WebClient) SendMessage(message *Message) (resp *proto.RuntimeRemoteObje
 	if message.Recipient == "" {
 		return nil, ErrMessageRecipientNotFound
 
-	} else if !recipientRegex.MatchString(message.Recipient) {
+	} else if !IsValidPhone(message.Recipient) {
 		return nil, ErrInvalidMessageRecipient
 	}
 
@@ -252,6 +238,8 @@ func (w *WebClient) DumpSession() ([]byte, error) {
 func (w *WebClient) LoadSession(data []byte) error {
 	// todo wait for implementation
 
+	fmt.Println(data)
+
 	return nil
 }
 
@@ -310,6 +298,25 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		Background:              false,
 	})
 
+	err = client.page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{
+		Width:              int(config.Resolution.Width),
+		Height:             int(config.Resolution.Height),
+		DeviceScaleFactor:  0,
+		Mobile:             false,
+		Scale:              0,
+		ScreenWidth:        int(config.Resolution.Width),
+		ScreenHeight:       int(config.Resolution.Height),
+		PositionX:          0,
+		PositionY:          0,
+		DontSetVisibleSize: false,
+		ScreenOrientation:  nil,
+		Viewport:           nil,
+		DisplayFeature:     nil,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	// ensure the script is loaded successfully
 	err = client.WaitScriptInjection(10 * time.Second)
 	if err != nil {
@@ -336,13 +343,4 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	}
 
 	return client, nil
-}
-
-func init() {
-	re, err := regexp.Compile(`[0-9]+`)
-	if err != nil {
-		panic(err)
-	}
-
-	recipientRegex = re
 }
