@@ -6,7 +6,6 @@ import (
 	"github.com/tee-ck/go-whatsapp-web"
 	"github.com/ysmood/gson"
 	"io/ioutil"
-	"os"
 	"time"
 )
 
@@ -20,8 +19,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	os.Exit(1)
 
 	// if the whatsapp client is started successfully, perform following test
 	var (
