@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/tee-ck/go-whatsapp-web"
-	"github.com/ysmood/gson"
 	"io/ioutil"
 	"time"
 )
@@ -22,7 +21,7 @@ func main() {
 
 	// if the whatsapp client is started successfully, perform following test
 	var (
-		resp gson.JSON
+		resp *whatsapp.JsResp
 	)
 
 	resp, err = SendText(client)
@@ -98,7 +97,7 @@ func StartClient() (client *whatsapp.WebClient, err error) {
 	return client, nil
 }
 
-func SendText(client *whatsapp.WebClient) (gson.JSON, error) {
+func SendText(client *whatsapp.WebClient) (*whatsapp.JsResp, error) {
 	message := &whatsapp.Message{
 		Recipient: "60196132898",
 		Kind:      "text",
@@ -106,16 +105,16 @@ func SendText(client *whatsapp.WebClient) (gson.JSON, error) {
 	}
 
 	resp, err := client.SendMessage(message)
-	return resp.Value, err
+	return resp, err
 }
 
-func SendImage(client *whatsapp.WebClient) (gson.JSON, error) {
+func SendImage(client *whatsapp.WebClient) (*whatsapp.JsResp, error) {
 	message := &whatsapp.Message{
 		Recipient: "60196132898",
 		Kind:      "media",
 	}
 
-	data := MustReadFile("./data/image.png")
+	data := MustReadFile("./data/image_01.png")
 	message.AppendAttachment(whatsapp.MessageAttachment{
 		Mimetype: "image/png",
 		Body:     data,
@@ -123,10 +122,10 @@ func SendImage(client *whatsapp.WebClient) (gson.JSON, error) {
 	})
 
 	resp, err := client.SendMessage(message)
-	return resp.Value, err
+	return resp, err
 }
 
-func SendMultiImage(client *whatsapp.WebClient) (gson.JSON, error) {
+func SendMultiImage(client *whatsapp.WebClient) (*whatsapp.JsResp, error) {
 	message := &whatsapp.Message{
 		Recipient: "60196132898",
 		Kind:      "media",
@@ -147,10 +146,10 @@ func SendMultiImage(client *whatsapp.WebClient) (gson.JSON, error) {
 	})
 
 	resp, err := client.SendMessage(message)
-	return resp.Value, err
+	return resp, err
 }
 
-func SendAudio(client *whatsapp.WebClient) (gson.JSON, error) {
+func SendAudio(client *whatsapp.WebClient) (*whatsapp.JsResp, error) {
 	message := &whatsapp.Message{
 		Recipient: "60196132898",
 		Kind:      "media",
@@ -164,10 +163,10 @@ func SendAudio(client *whatsapp.WebClient) (gson.JSON, error) {
 	})
 
 	resp, err := client.SendMessage(message)
-	return resp.Value, err
+	return resp, err
 }
 
-func SendVideo(client *whatsapp.WebClient) (gson.JSON, error) {
+func SendVideo(client *whatsapp.WebClient) (*whatsapp.JsResp, error) {
 	message := &whatsapp.Message{
 		Recipient: "60196132898",
 		Kind:      "media",
@@ -181,7 +180,7 @@ func SendVideo(client *whatsapp.WebClient) (gson.JSON, error) {
 	})
 
 	resp, err := client.SendMessage(message)
-	return resp.Value, err
+	return resp, err
 }
 
 func MustReadFile(filename string) (data []byte) {

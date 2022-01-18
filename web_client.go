@@ -76,7 +76,7 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
 	return ch, nil
 }
 
-func (w *WebClient) SendMessage(message *Message) (resp *proto.RuntimeRemoteObject, err error) {
+func (w *WebClient) SendMessage(message *Message) (resp *JsResp, err error) {
 	if !w.IsLogin {
 		return nil, ErrLoginRequired
 	}
@@ -93,12 +93,12 @@ func (w *WebClient) SendMessage(message *Message) (resp *proto.RuntimeRemoteObje
 		return nil, err
 	}
 
-	resp, err = w.Script(fmt.Sprintf("whatsapp.send_message(%s, %s)", message.Recipient, string(data)))
+	obj, err := w.Script(fmt.Sprintf("whatsapp.send_message(%s, %s)", message.Recipient, string(data)))
 	if err != nil {
 		return nil, err
 	}
 
-	return resp, nil
+	return ParseJavaScriptResp(obj)
 }
 
 func (w *WebClient) Script(script string) (*proto.RuntimeRemoteObject, error) {
@@ -341,6 +341,8 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	if resp.Value.Bool() {
 		client.IsLogin = true
 	}
+
+	time.Sleep(time.Second)
 
 	return client, nil
 }
