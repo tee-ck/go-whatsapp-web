@@ -16,4 +16,6 @@ var (
 	ErrFetchQrAfterLogin         = errors.New("[whatsapp web client]: already login, fetch qr code failed")
 	ErrMessageRecipientNotFound  = errors.New("[whatsapp web client]: message recipient not found")
 	ErrInvalidMessageRecipient   = errors.New("[whatsapp web client]: invalid message recipient")
+
+	ErrParseJavaScriptResponse = errors.New("[whatsapp web client]: unable to parse javascript response")
 )

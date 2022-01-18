@@ -131,6 +131,10 @@ func (w *WebClient) AsyncScript(script string) (*proto.RuntimeRemoteObject, erro
 }
 
 func (w *WebClient) WaitLogin(timeout time.Duration) error {
+	if w.IsLogin {
+		return nil
+	}
+
 	err := w.WaitVisible("#side", timeout)
 	if err != nil {
 		if errors.Is(err, ErrElementWaitVisibleTimeout) {
@@ -320,6 +324,15 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 
 	if resp.Value.Map()["status"].Int() != 200 {
 		return nil, ErrWebWhatsAppLoadFailed
+	}
+
+	resp, err = client.Script("whatsapp.ui.is_chat_page()")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Value.Bool() {
+		client.IsLogin = true
 	}
 
 	return client, nil
