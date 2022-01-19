@@ -29,30 +29,35 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(resp)
+	time.Sleep(5 * time.Second)
 
 	resp, err = SendImage(client)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(resp)
+	time.Sleep(5 * time.Second)
 
 	resp, err = SendMultiImage(client)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(resp)
+	time.Sleep(5 * time.Second)
 
 	resp, err = SendAudio(client)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(resp)
+	time.Sleep(5 * time.Second)
 
 	resp, err = SendVideo(client)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(resp)
+	time.Sleep(5 * time.Second)
 
 	time.Sleep(60 * time.Second)
 	err = client.Close()

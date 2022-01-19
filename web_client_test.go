@@ -24,7 +24,7 @@ func TestStartClient(t *testing.T) {
 
 func TestMultipleClient(t *testing.T) {
 	var wg sync.WaitGroup
-	count := 8
+	count := 12
 
 	for i := 0; i < count; i++ {
 		wg.Add(1)
