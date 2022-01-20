@@ -12,6 +12,7 @@ var (
 	ErrElementWaitVisibleTimeout = errors.New("[whatsapp web client]: browser element wait visible timeout")
 	ErrLoginRequired             = errors.New("[whatsapp web client]: login required")
 	ErrWaitLoginTimeout          = errors.New("[whatsapp web client]: wait login timeout")
+	ErrFetchQrFailed             = errors.New("[whatsapp web client]: fetch qr failed")
 	ErrFetchQrTimeout            = errors.New("[whatsapp web client]: fetch qr timeout")
 	ErrFetchQrAfterLogin         = errors.New("[whatsapp web client]: already login, fetch qr code failed")
 	ErrMessageRecipientNotFound  = errors.New("[whatsapp web client]: message recipient not found")

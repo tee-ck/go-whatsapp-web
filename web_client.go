@@ -7,6 +7,7 @@ import (
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/go-rod/rod/lib/proto"
 	"github.com/ysmood/gson"
+	"io"
 	"os"
 	"path/filepath"
 	"time"
@@ -37,9 +38,10 @@ type WebClient struct {
 
 	browser *rod.Browser
 	page    *rod.Page
+	logger  io.WriteCloser
 }
 
-func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
+func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 	if w.IsLogin {
 		return nil, ErrFetchQrAfterLogin
 	}
@@ -47,25 +49,37 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan WaResp, error) {
 	var (
 		qrcode string
 	)
-	ch := make(chan WaResp, 10)
+	ch := make(chan *JsResp, 10)
 
 	go func() {
 		now := time.Now()
 		for {
 			if time.Now().UnixMilli()-now.UnixMilli() >= timeout.Milliseconds() {
-				ch <- WaResp{400, "fetch qrcode timeout", gson.JSON{}, ErrFetchQrTimeout}
+				ch <- &JsResp{400, ``, "fetch qrcode timeout", nil, ErrFetchQrTimeout}
 				break
 			}
 
 			obj, err := w.Script("whatsapp.ui.get_qr()")
 			if err != nil {
-				ch <- WaResp{500, "script error: whatsapp.ui.get_qr()", obj.Value, err}
+				ch <- &JsResp{500, ``, "script error: whatsapp.ui.get_qr()", obj.Value, err}
 				break
 			}
 
-			if qrcode != obj.Value.Str() {
-				ch <- WaResp{200, "", obj.Value, nil}
-				qrcode = obj.Value.Str()
+			resp, err := ParseJavaScriptResp(obj)
+			if err != nil {
+				ch <- &JsResp{500, ``, "parse response error: whatsapp.ui.get_qr()", obj.Value, err}
+				break
+			}
+
+			if resp.Status != 200 {
+				resp.Error = ErrFetchQrFailed
+				ch <- resp
+				break
+			}
+
+			if qrcode != resp.Data.(string) {
+				ch <- resp
+				qrcode = resp.Data.(string)
 			}
 
 			time.Sleep(100 * time.Millisecond)

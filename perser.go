@@ -10,6 +10,7 @@ type JsResp struct {
 	Flag    string      `json:"flag,omitempty"`
 	Message string      `json:"message,omitempty"`
 	Data    interface{} `json:"data"`
+	Error   error       `json:"-"`
 }
 
 func ParseJavaScriptResp(resp *proto.RuntimeRemoteObject) (*JsResp, error) {

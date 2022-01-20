@@ -68,7 +68,8 @@ func main() {
 
 func StartClient() (client *whatsapp.WebClient, err error) {
 	client, err = whatsapp.NewWebClient(whatsapp.WebClientConfig{
-		SessionID: "622f6c4949597036784f7631615846786364365063773d3d",
+		//SessionID: "622f6c4949597036784f7631615846786364365063773d3d",
+		SessionID: "18f7680bb1dcce6708886dc9fbb6e3dbd35ca9b3b532b6b8",
 		Resolution: &whatsapp.Resolution{
 			Width:  1600,
 			Height: 900,
@@ -79,21 +80,27 @@ func StartClient() (client *whatsapp.WebClient, err error) {
 		return nil, err
 	}
 
-	ch, err := client.GetQrChannel(20 * time.Second)
+	ch, err := client.GetQrChannel(60 * time.Second)
 	if err != nil {
 		if !errors.Is(err, whatsapp.ErrFetchQrAfterLogin) {
 			return nil, err
 		}
 	} else {
 		for resp := range ch {
-			fmt.Println(resp)
-
 			if resp.Error != nil {
 				break
+			}
+
+			if resp.Status == 200 {
+				qrcode, ok := resp.Data.(string)
+				if ok {
+					fmt.Println(qrcode)
+				}
 			}
 		}
 	}
 
+	fmt.Println("waiting login")
 	err = client.WaitLogin(60 * time.Second)
 	if err != nil {
 		return nil, err
