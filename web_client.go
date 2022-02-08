@@ -244,17 +244,14 @@ func (w *WebClient) Screenshot(format proto.PageCaptureScreenshotFormat, quality
 }
 
 func (w *WebClient) DumpSession() ([]byte, error) {
-	// todo wait for implementation
+	location := fmt.Sprintf("./chrome-data/user-%s", w.Session.ID)
 
-	return nil, nil
+	return ZipDir(location)
 }
 
 func (w *WebClient) LoadSession(data []byte) error {
-	// todo wait for implementation
 
-	fmt.Println(data)
-
-	return nil
+	return UnzipDir(data)
 }
 
 func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {

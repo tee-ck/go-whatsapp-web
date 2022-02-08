@@ -81,7 +81,6 @@ func FindExec() (string, bool) {
 
 func InstallChromeExtension() error {
 	return fs.WalkDir(extension, ".", func(path string, d fs.DirEntry, err error) error {
-		fmt.Println(path)
 		if d.IsDir() {
 			err := os.MkdirAll(path, os.ModePerm)
 			if err != nil {
