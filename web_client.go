@@ -41,6 +41,14 @@ type WebClient struct {
 	logger  io.WriteCloser
 }
 
+func (w *WebClient) IsBeta() (bool, error) {
+	if !w.IsLogin {
+		return false, ErrLoginRequired
+	}
+
+	return false, nil
+}
+
 func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 	if w.IsLogin {
 		return nil, ErrFetchQrAfterLogin

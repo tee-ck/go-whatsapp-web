@@ -468,7 +468,8 @@
 
   // src/utils/ui-utils.ts
   function is_beta() {
-    const betaEl = document.evaluate(`//*[text()="BETA"]`, document, null, XPathResult.ANY_TYPE, null).iterateNext();
+    const expression = `//*[text()="BETA"]`;
+    const betaEl = document.evaluate(expression, document, null, XPathResult.ANY_TYPE, null).iterateNext();
     return !!betaEl;
   }
   function is_loading() {
@@ -634,7 +635,7 @@
       });
     }
     is_beta() {
-      return !!this.core?.Features?.GK?.features?.MD_BACKEND;
+      return !!this.core?.GK?.GK?.features?.MD_BACKEND;
     }
     async query_user(phone) {
       try {
