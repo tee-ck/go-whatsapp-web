@@ -5,13 +5,13 @@ import (
 	"bytes"
 	"embed"
 	"errors"
-	"fmt"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 //go:embed chrome-extensions
@@ -101,14 +101,14 @@ func InstallChromeExtension() error {
 	})
 }
 
-func ZipDir(dir string) (zipped []byte, err error) {
+func ZipDir(dir string, skip int) (zipped []byte, err error) {
 	var (
 		buffer = new(bytes.Buffer)
 	)
 
 	writer := zip.NewWriter(buffer)
 
-	err = ZipFiles(dir, writer)
+	err = ZipFiles(dir, writer, skip)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +121,7 @@ func ZipDir(dir string) (zipped []byte, err error) {
 	return buffer.Bytes(), nil
 }
 
-func ZipFiles(dir string, writer *zip.Writer) error {
+func ZipFiles(dir string, writer *zip.Writer, skip int) error {
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
 		return err
@@ -129,7 +129,7 @@ func ZipFiles(dir string, writer *zip.Writer) error {
 
 	for _, file := range files {
 		if file.IsDir() {
-			err = ZipFiles(filepath.Join(dir, file.Name()), writer)
+			err = ZipFiles(filepath.Join(dir, file.Name()), writer, skip)
 			if err != nil {
 				return err
 			}
@@ -139,7 +139,7 @@ func ZipFiles(dir string, writer *zip.Writer) error {
 				return err
 			}
 
-			w, err := writer.Create(filepath.Join(dir, file.Name()))
+			w, err := writer.Create(filepath.Join(strings.Split(filepath.Join(dir, file.Name()), string(filepath.Separator))[skip:]...))
 			if err != nil {
 				return err
 			}
@@ -154,7 +154,7 @@ func ZipFiles(dir string, writer *zip.Writer) error {
 	return nil
 }
 
-func UnzipDir(zipfile []byte) error {
+func UnzipDir(zipfile []byte, destination string) error {
 	var (
 		err    error
 		reader *zip.Reader
@@ -167,13 +167,29 @@ func UnzipDir(zipfile []byte) error {
 
 	for _, file := range reader.File {
 		if file.Mode().IsDir() {
-
+			continue
 		}
 
-		err = os.MkdirAll(file.Name, os.ModeDir)
+		folder := filepath.Join(destination, filepath.Dir(file.Name))
+
+		err = os.MkdirAll(folder, os.ModeDir)
+		if err != nil && !errors.Is(err, os.ErrExist) {
+			return err
+		}
+
+		reader, err := file.Open()
 		if err != nil {
-			fmt.Println(err.Error())
-			panic(err)
+			return err
+		}
+
+		buffer, err := ioutil.ReadAll(reader)
+		if err != nil {
+			return err
+		}
+
+		err = ioutil.WriteFile(filepath.Join(destination, file.Name), buffer, file.FileInfo().Mode())
+		if err != nil {
+			return err
 		}
 	}
 

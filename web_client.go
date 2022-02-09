@@ -252,14 +252,19 @@ func (w *WebClient) Screenshot(format proto.PageCaptureScreenshotFormat, quality
 }
 
 func (w *WebClient) DumpSession() ([]byte, error) {
-	location := fmt.Sprintf("./chrome-data/user-%s", w.Session.ID)
+	err := w.Cleanup()
+	if err != nil {
+		return nil, err
+	}
 
-	return ZipDir(location)
+	location := fmt.Sprintf("chrome-data/user-%s", w.Session.ID)
+
+	return ZipDir(location, 2)
 }
 
 func (w *WebClient) LoadSession(data []byte) error {
 
-	return UnzipDir(data)
+	return UnzipDir(data, "")
 }
 
 func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
@@ -270,27 +275,44 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	config := HandleConfigs(configs...)
 	client := &WebClient{}
 
+	// find Chrome browser executable
 	path, has := FindExec()
 	if !has {
 		return nil, ErrChromiumBrowserNotFound
 	}
 
-	p, err := filepath.Abs("./chrome-extensions")
+	// pre-compiled javascript Chrome extension (whatsapp web api injection script)
+	extensionPath, err := filepath.Abs("./chrome-extensions")
 	if err != nil {
 		return nil, err
 	}
 
+	// configure chrome devtools protocol launcher
 	launch := launcher.New().
 		Bin(path).
 		Headless(true).
 		Append("user-agent", config.UserAgent).
-		Append("load-extension", p).
+		Append("load-extension", extensionPath).
 		Append("window-size", fmt.Sprintf("%d,%d", config.Resolution.Width, config.Resolution.Height)).
 		Headless(config.Headless)
 
+	// user data directory path
+	userDataDir, err := filepath.Abs(filepath.Join("chrome-data", fmt.Sprintf("user-%s", config.SessionID)))
+	if err != nil {
+		return nil, err
+	}
+
+	// if storage is provided, dump the storage into local file system
+	if len(config.Storage) > 0 {
+		err = UnzipDir(config.Storage, userDataDir)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// if session ID do assigned, create a temp user profile dir
 	if config.SessionID != "" {
-		launch.UserDataDir(fmt.Sprintf("./chrome-data/user-%s", config.SessionID))
+		launch.UserDataDir(userDataDir)
 		client.Session.ID = config.SessionID
 	}
 

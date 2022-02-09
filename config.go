@@ -4,6 +4,7 @@ type WebClientConfig struct {
 	SessionID  string
 	UserAgent  string
 	Resolution *Resolution
+	Storage    []byte
 	Headless   bool
 }
 
