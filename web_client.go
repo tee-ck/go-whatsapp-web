@@ -85,9 +85,12 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 				break
 			}
 
-			if qrcode != resp.Data.(string) {
-				ch <- resp
-				qrcode = resp.Data.(string)
+			data, ok := resp.Data.(string)
+			if ok {
+				if qrcode != data {
+					ch <- resp
+					qrcode = data
+				}
 			}
 
 			time.Sleep(100 * time.Millisecond)
