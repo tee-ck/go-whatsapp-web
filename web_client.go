@@ -168,20 +168,33 @@ func (w *WebClient) WaitLogin(timeout time.Duration) error {
 }
 
 func (w *WebClient) WaitVisible(selector string, timeout time.Duration) (err error) {
+	var done bool
+
 	ch := make(chan error)
+	defer func() {
+		done = true
+
+		close(ch)
+	}()
 
 	go func() {
 		element, err := w.page.Element(selector)
 		if err != nil {
-			ch <- err
+			if !done {
+				ch <- err
+			}
 		}
 
 		err = element.WaitVisible()
 		if err != nil {
-			ch <- err
+			if !done {
+				ch <- err
+			}
 		}
 
-		ch <- nil
+		if !done {
+			ch <- nil
+		}
 	}()
 
 	select {
@@ -191,7 +204,6 @@ func (w *WebClient) WaitVisible(selector string, timeout time.Duration) (err err
 		err = ErrElementWaitVisibleTimeout
 	}
 
-	close(ch)
 	return err
 }
 
