@@ -296,18 +296,12 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		return nil, ErrChromiumBrowserNotFound
 	}
 
-	// pre-compiled javascript Chrome extension (whatsapp web api injection script)
-	extensionPath, err := filepath.Abs("./chrome-extensions")
-	if err != nil {
-		return nil, err
-	}
-
 	// configure chrome devtools protocol launcher
 	launch := launcher.New().
 		Bin(path).
 		Headless(true).
 		Append("user-agent", config.UserAgent).
-		Append("load-extension", extensionPath).
+		Append("load-extension", "./chrome-extensions").
 		Append("window-size", fmt.Sprintf("%d,%d", config.Resolution.Width, config.Resolution.Height)).
 		Headless(config.Headless)
 
