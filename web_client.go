@@ -296,13 +296,23 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		return nil, ErrChromiumBrowserNotFound
 	}
 
+	// pre-compiled javascript Chrome extension (whatsapp web api injection script)
+	extensionPath, err := filepath.Abs("./chrome-extensions")
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := os.Stat(extensionPath); os.IsNotExist(err) {
+		return nil, errors.New(fmt.Sprintf("[whatsapp web client]: chrome extensions directory not located: %s", extensionPath))
+	}
+
 	// configure chrome devtools protocol launcher
 	launch := launcher.New().
 		Bin(path).
 		Headless(true).
-		Append("user-agent", config.UserAgent).
-		Append("load-extension", "./chrome-extensions").
-		Append("window-size", fmt.Sprintf("%d,%d", config.Resolution.Width, config.Resolution.Height)).
+		Set("load-extension", extensionPath).
+		Set("user-agent", config.UserAgent).
+		Set("window-size", fmt.Sprintf("%d,%d", config.Resolution.Width, config.Resolution.Height)).
 		Headless(config.Headless)
 
 	// user data directory path
