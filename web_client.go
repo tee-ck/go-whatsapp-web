@@ -303,7 +303,7 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	}
 
 	if _, err := os.Stat(extensionPath); os.IsNotExist(err) {
-		return nil, errors.New(fmt.Sprintf("[whatsapp web client]: chrome extensions directory not located: %s", extensionPath))
+		return nil, errors.New(fmt.Sprintf("[whatsapp web client]: chrome extensions directory not found: %s", extensionPath))
 	}
 
 	// configure chrome devtools protocol launcher
