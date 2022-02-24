@@ -49,6 +49,20 @@ func (w *WebClient) IsBeta() (bool, error) {
 	return false, nil
 }
 
+func (w *WebClient) InjectScript() error {
+	script, err := GetWhatsAppWebInjectScript()
+	if err != nil {
+		return err
+	}
+
+	_, err = w.page.Eval(script)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 	if w.IsLogin {
 		return nil, ErrFetchQrAfterLogin
@@ -156,6 +170,12 @@ func (w *WebClient) WaitLogin(timeout time.Duration) error {
 
 	// successfully login
 	w.IsLogin = true
+
+	// re-inject javascript
+	err = w.InjectScript()
+	if err != nil {
+		return err
+	}
 
 	obj, err := w.Script("whatsapp.remote")
 	if err != nil {
@@ -310,6 +330,7 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	launch := launcher.New().
 		Bin(path).
 		Headless(true).
+		Set("disable-extensions-except", extensionPath).
 		Set("load-extension", extensionPath).
 		Set("user-agent", config.UserAgent).
 		Set("window-size", fmt.Sprintf("%d,%d", config.Resolution.Width, config.Resolution.Height)).
@@ -373,6 +394,12 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		Viewport:           nil,
 		DisplayFeature:     nil,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	// inject javascript to control whatsapp web page
+	err = client.InjectScript()
 	if err != nil {
 		return nil, err
 	}

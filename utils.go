@@ -101,6 +101,15 @@ func InstallChromeExtension() error {
 	})
 }
 
+func GetWhatsAppWebInjectScript() (string, error) {
+	data, err := extension.ReadFile("chrome-extensions/whatsapp-inject-api.js")
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
 func ZipDir(dir string, skip int) (zipped []byte, err error) {
 	var (
 		buffer = new(bytes.Buffer)

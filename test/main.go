@@ -74,7 +74,7 @@ func StartClient() (client *whatsapp.WebClient, err error) {
 			Width:  1600,
 			Height: 900,
 		},
-		Headless: false,
+		Headless: true,
 	})
 	if err != nil {
 		return nil, err

@@ -8,7 +8,9 @@ import (
 )
 
 func TestStartClient(t *testing.T) {
-	client, err := NewWebClient(WebClientConfig{})
+	client, err := NewWebClient(WebClientConfig{
+		Headless: true,
+	})
 	if err != nil {
 		log.Fatalln(err)
 	}
