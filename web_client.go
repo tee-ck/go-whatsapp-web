@@ -433,3 +433,17 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 
 	return client, nil
 }
+
+func init() {
+	var err error
+
+	err = InstallChromeExtension()
+	if err != nil {
+		panic(err)
+	}
+
+	err = os.MkdirAll("chrome-data", os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+}

@@ -181,7 +181,7 @@ func UnzipDir(zipfile []byte, destination string) error {
 
 		folder := filepath.Join(destination, filepath.Dir(file.Name))
 
-		err = os.MkdirAll(folder, os.ModeDir)
+		err = os.MkdirAll(folder, os.ModePerm)
 		if err != nil && !errors.Is(err, os.ErrExist) {
 			return err
 		}
