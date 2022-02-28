@@ -667,7 +667,6 @@
           }
         }
       } catch (err) {
-        console.error(err);
         return response(500, Errors.UNEXPECTED, `[query user error][unknown error]`);
       }
     }
@@ -684,16 +683,17 @@
               case 200:
                 jid = resp.data;
                 break;
-              case 400:
-                return [response(400, Errors.INVALID_PHONE, `[query chat error][invalid phone format]: ${remote}`)];
+              case 402:
+                return [response(402, Errors.INVALID_PHONE, `[query chat error][invalid phone format]: ${remote}`)];
               case 404:
                 return [response(404, Errors.INVALID_PHONE, `[query chat error][invalid phone]: ${remote}`)];
+              case 500:
+                return [response(500, Errors.UNEXPECTED, `[query chat error][unexpected error]`)];
             }
           } else {
             try {
               jid = this.core.WidFactory.createUserWid(remote);
             } catch (err) {
-              console.error(err);
               return [response(500, Errors.UNEXPECTED, `[query chat error][create user wid error]`)];
             }
           }
@@ -706,10 +706,7 @@
       } else {
         chat = this.core.Store.Chat.models.find((chat2) => chat2.id.user === remote.user);
       }
-      return [
-        response(200, ``, ``, chat),
-        rid
-      ];
+      return [response(200, ``, ``, chat), rid];
     }
     async send_text(remote, message) {
       if (!message) {
@@ -732,7 +729,6 @@
         }
         return response(200, ``, `[send text success]`);
       } catch (err) {
-        console.error(err);
         return response(500, Errors.UNEXPECTED, `[send text error][unknown error]`, err);
       }
     }
@@ -830,7 +826,7 @@
   };
 
   // public/manifest.json
-  var version = "1.1.9";
+  var version = "1.2.0";
 
   // src/models/whatsapp.ts
   var WhatsApp = class extends Events.EventEmitter {
@@ -944,7 +940,6 @@
     }
     async send_message(chat, proto, timeout2 = 3e3) {
       let message;
-      console.log(this);
       try {
         if (proto instanceof Message) {
           message = proto;
@@ -952,7 +947,7 @@
           message = await Message.from(proto);
         }
         if (!!timeout2) {
-          setTimeout(function() {
+          setTimeout(() => {
             throw Error("timeout");
           }, timeout2);
         }
@@ -967,6 +962,12 @@
             return response(400, `invalid message`);
         }
       } catch (err) {
+        if (!!err.status) {
+          return response(err.status, err.message);
+        }
+        if (err.message === "timeout") {
+          return response(408, `send message timeout`);
+        }
         return response(500, `unexpected error`);
       }
     }
