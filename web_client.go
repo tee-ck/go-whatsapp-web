@@ -46,7 +46,12 @@ func (w *WebClient) IsBeta() (bool, error) {
 		return false, ErrLoginRequired
 	}
 
-	return false, nil
+	resp, err := w.Script("whatsapp.api.is_beta()")
+	if err != nil {
+		return false, err
+	}
+
+	return resp.Value.Bool(), nil
 }
 
 func (w *WebClient) InjectScript() error {
