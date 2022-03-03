@@ -643,7 +643,6 @@
           let handler = new this.core.USyncQuery().withContactProtocol();
           handler = handler.withUser(new this.core.USyncUser().withPhone("+" + phone));
           const resp = await handler.execute();
-          console.log(resp);
           if (!!resp.list[0].id) {
             switch (resp.list[0].contact.type) {
               case "in":
@@ -677,25 +676,10 @@
       if (typeof remote === "string") {
         chat = this.core.Store.Chat.models.find((chat2) => chat2.id.user === remote);
         if (!chat) {
-          if (!is_beta()) {
-            const resp = await this.query_user(remote);
-            switch (resp.status) {
-              case 200:
-                jid = resp.data;
-                break;
-              case 402:
-                return [response(402, Errors.INVALID_PHONE, `[query chat error][invalid phone format]: ${remote}`)];
-              case 404:
-                return [response(404, Errors.INVALID_PHONE, `[query chat error][invalid phone]: ${remote}`)];
-              case 500:
-                return [response(500, Errors.UNEXPECTED, `[query chat error][unexpected error]`)];
-            }
-          } else {
-            try {
-              jid = this.core.WidFactory.createUserWid(remote);
-            } catch (err) {
-              return [response(500, Errors.UNEXPECTED, `[query chat error][create user wid error]`)];
-            }
+          try {
+            jid = this.core.WidFactory.createUserWid(remote);
+          } catch (err) {
+            return [response(500, Errors.UNEXPECTED, `[query chat error][create user wid error]`)];
           }
           if (!!jid) {
             chat = this.core.Store.Chat.models[0];
