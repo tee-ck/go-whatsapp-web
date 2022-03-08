@@ -208,6 +208,7 @@ func (w *WebClient) WaitVisible(selector string, timeout time.Duration) (err err
 			if !done {
 				ch <- err
 			}
+			return
 		}
 
 		err = element.WaitVisible()
@@ -215,6 +216,7 @@ func (w *WebClient) WaitVisible(selector string, timeout time.Duration) (err err
 			if !done {
 				ch <- err
 			}
+			return
 		}
 
 		if !done {
