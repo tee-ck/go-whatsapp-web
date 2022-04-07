@@ -576,7 +576,7 @@
       VCard: (mod) => mod?.vcardFromContactModel ? mod : null,
       User: (mod) => mod?.getMaybeMeUser ? mod : null,
       AppConst: (mod) => mod?.default?.ACK ? mod.default : null,
-      AppState: (mod) => mod?.STREAM ? mod : null
+      AppState: (mod) => mod?.STREAM || mod?.Socket ? mod : null
     };
     for (let module of modules) {
       if (typeof module != "object" || !module) {
@@ -810,7 +810,7 @@
   };
 
   // public/manifest.json
-  var version = "1.2.0";
+  var version = "1.3.8";
 
   // src/models/whatsapp.ts
   var WhatsApp = class extends Events.EventEmitter {

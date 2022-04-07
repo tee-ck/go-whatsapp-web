@@ -9,10 +9,19 @@ import (
 
 func TestStartClient(t *testing.T) {
 	client, err := NewWebClient(WebClientConfig{
-		Headless: true,
+		Headless: false,
 	})
 	if err != nil {
 		log.Fatalln(err)
+	}
+
+	qrch, err := client.GetQrChannel(time.Minute)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	for qr := range qrch {
+		log.Println(qr)
 	}
 
 	time.Sleep(5 * time.Second)

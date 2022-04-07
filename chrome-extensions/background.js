@@ -4,19 +4,27 @@
     if (!!details.url) {
       const url = new URL(details.url);
       if (url.hostname === "web.whatsapp.com") {
-        await chrome.tabs.executeScript({
-          frameId: details.frameId,
-          runAt: "document_end",
-          code: "(" + inject_script + ")();"
-        });
+        setTimeout(async () => {
+          await chrome.scripting.executeScript({
+            target: {
+              tabId: details.tabId
+            },
+            func: (args) => {
+              const { scriptURL } = args;
+              const tag = "whatsapp-parasite-" + new Date().getTime();
+              const script = document.createElement("script");
+              script.id = tag;
+              script.src = scriptURL;
+              console.log(script);
+              document.body.appendChild(script);
+            },
+            world: void 0,
+            args: [{
+              scriptURL: chrome.runtime.getURL("whatsapp-inject-api.js")
+            }]
+          });
+        }, 1500);
       }
     }
   });
-  function inject_script() {
-    const tag = "whatsapp-parasite-" + new Date().getTime();
-    const script = document.createElement("script");
-    script.id = tag;
-    script.src = chrome.extension.getURL("whatsapp-inject-api.js");
-    document.body.appendChild(script);
-  }
 })();
