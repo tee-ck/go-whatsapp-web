@@ -12,12 +12,12 @@ func TestStartClient(t *testing.T) {
 		Headless: false,
 	})
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	qrch, err := client.GetQrChannel(time.Minute)
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	for qr := range qrch {
@@ -27,7 +27,7 @@ func TestStartClient(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	err = client.Close()
 	if err != nil {
-		log.Fatalln(err)
+		panic(err)
 	}
 
 	return

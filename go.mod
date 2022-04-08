@@ -3,7 +3,7 @@ module github.com/tee-ck/go-whatsapp-web
 go 1.17
 
 require (
-	github.com/go-rod/rod v0.105.0
+	github.com/go-rod/rod v0.101.8
 	github.com/ysmood/gson v0.7.1
 )
 
