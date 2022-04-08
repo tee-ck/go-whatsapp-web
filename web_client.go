@@ -286,7 +286,7 @@ func (w *WebClient) Cleanup() (err error) {
 func (w *WebClient) Screenshot(format proto.PageCaptureScreenshotFormat, quality int) ([]byte, error) {
 	return w.page.Screenshot(true, &proto.PageCaptureScreenshot{
 		Format:                format,
-		Quality:               quality,
+		Quality:               &quality,
 		Clip:                  nil,
 		FromSurface:           false,
 		CaptureBeyondViewport: false,
@@ -375,11 +375,13 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		return nil, err
 	}
 
+	rWidth, rHeight := int(config.Resolution.Width), int(config.Resolution.Height)
+
 	// opening web.whatsapp.com
 	client.page, err = client.browser.Page(proto.TargetCreateTarget{
 		URL:                     "https://web.whatsapp.com",
-		Width:                   int(config.Resolution.Width),
-		Height:                  int(config.Resolution.Height),
+		Width:                   &rWidth,
+		Height:                  &rHeight,
 		BrowserContextID:        client.browser.BrowserContextID,
 		EnableBeginFrameControl: false,
 		NewWindow:               false,
@@ -391,11 +393,8 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		Height:             int(config.Resolution.Height),
 		DeviceScaleFactor:  0,
 		Mobile:             false,
-		Scale:              0,
-		ScreenWidth:        int(config.Resolution.Width),
-		ScreenHeight:       int(config.Resolution.Height),
-		PositionX:          0,
-		PositionY:          0,
+		ScreenWidth:        &rWidth,
+		ScreenHeight:       &rHeight,
 		DontSetVisibleSize: false,
 		ScreenOrientation:  nil,
 		Viewport:           nil,
