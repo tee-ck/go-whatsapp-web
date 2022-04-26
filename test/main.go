@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/skip2/go-qrcode"
 	"github.com/tee-ck/go-whatsapp-web"
 	"io/ioutil"
 	"time"
@@ -80,7 +81,7 @@ func StartClient() (client *whatsapp.WebClient, err error) {
 		return nil, err
 	}
 
-	ch, err := client.GetQrChannel(60 * time.Second)
+	ch, err := client.GetQrChannel(180 * time.Second)
 	if err != nil {
 		if !errors.Is(err, whatsapp.ErrFetchQrAfterLogin) {
 			return nil, err
@@ -92,9 +93,18 @@ func StartClient() (client *whatsapp.WebClient, err error) {
 			}
 
 			if resp.Status == 200 {
-				qrcode, ok := resp.Data.(string)
+				data, ok := resp.Data.(string)
 				if ok {
-					fmt.Println(qrcode)
+					buf, err := qrcode.Encode(data, qrcode.Medium, 256)
+					if err != nil {
+						panic(err)
+					}
+
+					if err = ioutil.WriteFile("./data/qrcode.png", buf, 0644); err != nil {
+						panic(err)
+					}
+
+					fmt.Println(data)
 				}
 			}
 		}
