@@ -1,6 +1,9 @@
 package whatsapp
 
 import (
+	"fmt"
+	"github.com/skip2/go-qrcode"
+	"io/ioutil"
 	"log"
 	"sync"
 	"testing"
@@ -9,20 +12,38 @@ import (
 
 func TestStartClient(t *testing.T) {
 	client, err := NewWebClient(WebClientConfig{
-		Headless: false,
+		Headless: true,
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	qrch, err := client.GetQrChannel(time.Minute)
+	qrChan, err := client.GetQrChannel(5 * time.Minute)
 	if err != nil {
 		panic(err)
 	}
 
-	for qr := range qrch {
-		log.Println(qr)
+	var buf []byte
+	for qrResp := range qrChan {
+		fmt.Println(qrResp)
+
+		data := qrResp.Data.(string)
+		buf, err = qrcode.Encode(data, qrcode.Medium, 256)
+		if err != nil {
+			panic(err)
+		}
+
+		if err = ioutil.WriteFile("./data/qrcode.png", buf, 0644); err != nil {
+			panic(err)
+		}
 	}
+
+	start := time.Now()
+	err = client.WaitLogin(1 * time.Minute)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	fmt.Println("time elapsed:", time.Since(start))
 
 	time.Sleep(5 * time.Second)
 	err = client.Close()

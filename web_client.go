@@ -81,7 +81,7 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 	go func() {
 		now := time.Now()
 		for {
-			if time.Now().UnixMilli()-now.UnixMilli() >= timeout.Milliseconds() {
+			if (time.Now().UnixMilli() - now.UnixMilli()) >= timeout.Milliseconds() {
 				ch <- &JsResp{400, ``, "fetch qrcode timeout", nil, ErrFetchQrTimeout}
 				break
 			}
@@ -98,17 +98,20 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 				break
 			}
 
-			if resp.Status != 200 {
-				resp.Error = ErrFetchQrFailed
-				ch <- resp
-				break
-			}
-
-			data, ok := resp.Data.(string)
-			if ok {
-				if qrcode != data {
-					ch <- resp
-					qrcode = data
+			if resp.Status == 200 {
+				data, ok := resp.Data.(string)
+				if ok {
+					if qrcode != data {
+						ch <- resp
+						qrcode = data
+					}
+				}
+			} else {
+				if obj, err = w.Script("whatsapp.ui.is_landing_page()"); err == nil {
+					if obj.Value.Bool() {
+						ch <- resp
+						break
+					}
 				}
 			}
 
@@ -388,7 +391,7 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		Background:              false,
 	})
 
-	err = client.page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{
+	if err = client.page.SetViewport(&proto.EmulationSetDeviceMetricsOverride{
 		Width:              int(config.Resolution.Width),
 		Height:             int(config.Resolution.Height),
 		DeviceScaleFactor:  0,
@@ -399,20 +402,17 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 		ScreenOrientation:  nil,
 		Viewport:           nil,
 		DisplayFeature:     nil,
-	})
-	if err != nil {
+	}); err != nil {
 		return nil, err
 	}
 
 	// inject javascript to control whatsapp web page
-	err = client.InjectScript()
-	if err != nil {
+	if err = client.InjectScript(); err != nil {
 		return nil, err
 	}
 
-	// ensure the script is loaded successfully
-	err = client.WaitScriptInjection(10 * time.Second)
-	if err != nil {
+	// ensure the script is injected successfully
+	if err = client.WaitScriptInjection(20 * time.Second); err != nil {
 		return nil, err
 	}
 
@@ -434,7 +434,6 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	if resp.Value.Bool() {
 		client.IsLogin = true
 	}
-
 	time.Sleep(time.Second)
 
 	return client, nil
