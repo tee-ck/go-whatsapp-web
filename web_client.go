@@ -89,7 +89,12 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 
 			obj, err := w.Script("whatsapp.ui.get_qr()")
 			if err != nil {
-				ch <- &JsResp{500, ``, "script error: whatsapp.ui.get_qr()", obj.Value, err}
+				var val gson.JSON
+				if obj != nil {
+					val = obj.Value
+				}
+
+				ch <- &JsResp{500, ``, "script error: whatsapp.ui.get_qr()", val, err}
 				break
 			}
 
@@ -109,8 +114,9 @@ func (w *WebClient) GetQrChannel(timeout time.Duration) (chan *JsResp, error) {
 				}
 			} else {
 				if obj, err = w.Script("whatsapp.ui.is_landing_page()"); err == nil {
-					if obj.Value.Bool() {
-						ch <- resp
+					ch <- resp
+
+					if !obj.Value.Bool() {
 						break
 					}
 				}
@@ -413,7 +419,7 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	}
 
 	// ensure the script is injected successfully
-	if err = client.WaitScriptInjection(20 * time.Second); err != nil {
+	if err = client.WaitScriptInjection(30 * time.Second); err != nil {
 		return nil, err
 	}
 
@@ -435,7 +441,7 @@ func NewWebClient(configs ...WebClientConfig) (*WebClient, error) {
 	if resp.Value.Bool() {
 		client.IsLogin = true
 	}
-	time.Sleep(time.Second)
+	time.Sleep(10 * time.Second)
 
 	return client, nil
 }
