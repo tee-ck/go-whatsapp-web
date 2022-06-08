@@ -674,7 +674,7 @@
       let rid;
       let jid;
       if (typeof remote === "string") {
-        chat = this.core.Store.Chat.models.find((chat2) => chat2.id.user === remote);
+        chat = this.core.Store.Chat._models.find((chat2) => chat2.id.user === remote);
         if (!chat) {
           try {
             jid = this.core.WidFactory.createUserWid(remote);
@@ -682,13 +682,13 @@
             return [response(500, Errors.UNEXPECTED, `[query chat error][create user wid error]`)];
           }
           if (!!jid) {
-            chat = this.core.Store.Chat.models[0];
+            chat = this.core.Store.Chat._models[0];
             rid = chat.id;
             chat.id = jid;
           }
         }
       } else {
-        chat = this.core.Store.Chat.models.find((chat2) => chat2.id.user === remote.user);
+        chat = this.core.Store.Chat._models.find((chat2) => chat2.id.user === remote.user);
       }
       return [response(200, ``, ``, chat), rid];
     }
@@ -730,9 +730,9 @@
         let mc = new this.core.MediaCollection(chat);
         await mc.processAttachments(attachments, chat, 1);
         if (files.length === 1) {
-          await mc.models[0].sendToChat(chat, { caption: opts?.caption });
+          await mc._models[0].sendToChat(chat, { caption: opts?.caption });
         } else {
-          for (const model of mc.models) {
+          for (const model of mc._models) {
             await model.sendToChat(chat, { caption: null });
           }
           if (opts?.caption) {
@@ -810,7 +810,7 @@
   };
 
   // public/manifest.json
-  var version = "1.3.8";
+  var version = "1.4.0";
 
   // src/models/whatsapp.ts
   var WhatsApp = class extends Events.EventEmitter {
